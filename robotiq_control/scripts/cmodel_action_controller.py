@@ -23,23 +23,27 @@ class CModelActionController(object):
     self._ns = rospy.get_namespace()
     # Read configuration parameters
     self._fb_rate = read_parameter(self._ns + 'gripper_action_controller/publish_rate', 60.0)
-    self._min_gap = read_parameter(self._ns + 'gripper_action_controller/min_gap', 0.0)
     self._min_gap_counts = read_parameter(self._ns + 'gripper_action_controller/min_gap_counts', 230.)
+    self._counts_to_meters = read_parameter(self._ns + 'gripper_action_controller/counts_to_meters', 0.8)
+    self._min_gap = read_parameter(self._ns + 'gripper_action_controller/min_gap', 0.0)
     self._max_gap = read_parameter(self._ns + 'gripper_action_controller/max_gap', 0.085)
     self._min_speed = read_parameter(self._ns + 'gripper_action_controller/min_speed', 0.013)
     self._max_speed = read_parameter(self._ns + 'gripper_action_controller/max_speed', 0.1)
     self._min_force = read_parameter(self._ns + 'gripper_action_controller/min_force', 40.0)
     self._max_force = read_parameter(self._ns + 'gripper_action_controller/max_force', 100.0)
+    self._joint_name = read_parameter(self._ns + 'gripper_action_controller/joint_name', 'robotiq_85_left_knuckle_joint')
     self._gripper_prefix = read_parameter(self._ns + 'gripper_prefix', "")   # Used for updating joint state
     # Configure and start the action server
     self._status = CModelStatus()
     self._name = self._ns + 'gripper_action_controller'
     self._server = SimpleActionServer(self._name, CModelCommandAction, execute_cb=self._execute_cb, auto_start = False)
+    self.status_pub = rospy.Publisher('gripper_status', CModelCommandFeedback, queue_size=1)
     self.js_pub = rospy.Publisher('joint_states', JointState, queue_size=1)
     self.js_pub_global = rospy.Publisher('/joint_states', JointState, queue_size=1)
     rospy.Subscriber('status', CModelStatus, self._status_cb, queue_size=1)
     self._cmd_pub = rospy.Publisher('command', CModelCommand, queue_size=1)
     working = True
+    rospy.sleep(1.0)   # Wait before checking status with self._ready()
     if activate and not self._ready():
       rospy.sleep(2.0)
       working = self._activate()
@@ -58,14 +62,22 @@ class CModelActionController(object):
     # Publish the joint_states for the gripper
     js_msg = JointState()
     js_msg.header.stamp = rospy.Time.now()
-    js_msg.name.append('robotiq_85_left_knuckle_joint')
-    js_msg.position.append(0.8*self._status.gPO/self._min_gap_counts)
+    js_msg.name.append(self._joint_name)
+    # js_msg.position.append(0.8*self._status.gPO/self._min_gap_counts)
+    js_msg.position.append(self._counts_to_meters*
+                           self._status.gPO/self._min_gap_counts)
     self.js_pub.publish(js_msg)
     js_msg.name = []
-    js_msg.name.append(self._gripper_prefix + 'robotiq_85_left_knuckle_joint')
+    js_msg.name.append(self._gripper_prefix + self._joint_name)
     self.js_pub_global.publish(js_msg)
 
-    
+    # Publish the gripper status (to easily access gripper width)
+    feedback = CModelCommandFeedback()
+    feedback.activated = self._ready()
+    feedback.position = self._get_position()
+    feedback.stalled = self._stalled()
+    # # feedback.reached_goal = self._reached_goal(position)
+    self.status_pub.publish(feedback)
 
   def _execute_cb(self, goal):
     success = True
@@ -85,7 +97,12 @@ class CModelActionController(object):
     # Send the goal to the gripper and feedback to the action client
     rate = rospy.Rate(self._fb_rate)
     rospy.logdebug('%s: Moving gripper to position: %.3f ' % (self._name, position))
+
+    self._status.gOBJ = 0 # R.Hanai
+
     feedback = CModelCommandFeedback()
+
+    command_sent_time = rospy.get_rostime()
     while not self._reached_goal(position):
       self._goto_position(position, velocity, force)
       if rospy.is_shutdown() or self._server.is_preempt_requested():
@@ -96,7 +113,9 @@ class CModelActionController(object):
       feedback.reached_goal = self._reached_goal(position)
       self._server.publish_feedback(feedback)
       rate.sleep()
-      if self._stalled():
+
+      time_since_command = rospy.get_rostime() - command_sent_time
+      if time_since_command > rospy.Duration(0.5) and self._stalled():
         break
     rospy.logdebug('%s: Succeeded' % self._name)
     result = CModelCommandResult()
@@ -106,7 +125,7 @@ class CModelActionController(object):
     self._server.set_succeeded(result)
 
   def _activate(self, timeout=5.0):
-    command = CModelCommand();
+    command = CModelCommand()
     command.rACT = 1
     command.rGTO = 1
     command.rSP  = 255
@@ -117,7 +136,7 @@ class CModelActionController(object):
         self._preempt()
         return False
       if rospy.get_time() - start_time > timeout:
-        rospy.logwarn('Failed to activated gripper in ns [%s]' % (self._ns))
+        rospy.logwarn('Failed to activate gripper in ns [%s]' % (self._ns))
         return False
       self._cmd_pub.publish(command)
       rospy.sleep(0.1)
@@ -151,6 +170,7 @@ class CModelActionController(object):
     return self._status.gGTO == 1 and self._status.gOBJ == 0
 
   def _reached_goal(self, goal, tol = 0.003):
+    # rospy.loginfo('REACHED_GOAL: goal=%f, current=%f'%(goal, self._get_position()))
     return (abs(goal - self._get_position()) < tol)
 
   def _ready(self):

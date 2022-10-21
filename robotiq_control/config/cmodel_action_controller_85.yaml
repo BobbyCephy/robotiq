@@ -3,14 +3,14 @@ gripper_action_controller:
   publish_rate: 100
   min_gap_counts: 224
   counts_to_meters: 0.8
-  # Gripper width in meters [0, 0.085]
+  # Gripper width in meters [0, 0.140]
   min_gap:    0.0
   max_gap:    0.085
-  # Gripper speed in m/s [0.013, 0.1]
+  # Gripper speed in m/s [0.03, 0.25]
   min_speed:  0.013
   max_speed:  0.1
-  # Gripper force in N. [40, 100]
+  # Gripper force in N. [10, 125]
   min_force:  40.0
   max_force:  100.0
   # Joint name
-  joint_name: robotiq_85_left_knuckle_joint
+  joint_name: finger_joint
