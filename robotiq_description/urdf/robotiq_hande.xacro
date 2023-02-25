@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="robotiq_hande">
+  <!-- Author: Cristian Beltran -->
+
+  <xacro:macro name="robotiq_hande" params="parent *origin prefix:=robotiq_hande interface:=Position">
+    <joint name="${prefix}_base_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${prefix}_base_link"/>
+      <xacro:insert_block name="origin"/>
+    </joint>
+
+    <link name="${prefix}_base_link">
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0.04607"/>
+        <mass value="0.86387"/>
+        <inertia ixx="1017560E-9" ixy="0" ixz="2235E-9" iyy="1028041E-9" iyz="0" izz="489810E-9"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://robotiq_description/meshes/robotiq_hande/visual/base.dae"/>
+        </geometry>
+        <material name="Dark">
+          <color rgba="0.1 0.1 0.1 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="package://robotiq_description/meshes/robotiq_hande/collision/base.dae"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <gazebo reference="${prefix}_base_link">
+      <material>Gazebo/FlatBlack</material>
+      <maxVel>0</maxVel>
+      <minDepth>0</minDepth>
+    </gazebo>
+
+    <xacro:macro name="finger" params="side">
+      <link name="${prefix}_finger_${side}_link">
+        <inertial>
+          <origin rpy="0 0 0" xyz="${(-1)**(side=='right')*0.02262} ${(-1)**(side=='left')*0.00759} 0.00738"/>
+          <mass value="0.03804"/>
+          <inertia ixx="13567E-9" ixy="1849E-9" ixz="${(-1)**(side=='right')*3622E-9}" iyy="15784E-9" iyz="${(-1)**(side=='right')*3616E-9}" izz="7478E-9"/>
+        </inertial>
+        <visual>
+          <geometry>
+            <mesh filename="package://robotiq_description/meshes/robotiq_hande/visual/finger_${side}.dae"/>
+          </geometry>
+          <material name="DarkGray">
+            <color rgba="0.4 0.4 0.4 1.0"/>
+          </material>
+        </visual>
+        <collision>
+          <geometry>
+            <mesh filename="package://robotiq_description/meshes/robotiq_hande/collision/finger_${side}.dae"/>
+          </geometry>
+        </collision>
+      </link>
+
+      <gazebo reference="${prefix}_finger_${side}_link">
+        <material>Gazebo/Grey</material>
+        <!-- Improve grasping physics -->
+<!--        <kp>1000000.0</kp>-->
+<!--        <kd>1.0</kd>-->
+<!--        <mu1>1.0</mu1>-->
+<!--        <mu2>1.0</mu2>-->
+        <maxVel>0</maxVel>
+        <minDepth>0</minDepth>
+      </gazebo>
+
+    <xacro:property name="effort" value="130"/>
+    <xacro:property name="velocity" value="0.15"/>
+
+      <joint name="${prefix}_finger_${side}_joint" type="prismatic">
+        <origin rpy="0 0 0" xyz="0 0 0.099"/>
+        <parent link="${prefix}_base_link"/>
+        <child link="${prefix}_finger_${side}_link"/>
+        <axis xyz="${(-1)**(side=='left')} 0 0"/>
+        <limit effort="${effort}" lower="0" upper="0.025" velocity="${velocity}"/>
+        <dynamics damping="${effort/velocity}"/>
+        <xacro:if value="${side=='right'}">
+          <mimic joint="${prefix}_finger_left_joint"/>
+        </xacro:if>
+      </joint>
+
+      <gazebo reference="${prefix}_finger_${side}_joint">
+        <implicitSpringDamper>true</implicitSpringDamper>
+        <provideFeedback>true</provideFeedback>
+      </gazebo>
+
+      <!-- Actuated joint -->
+      <xacro:if value="${side=='left'}">
+        <transmission name="${prefix}_finger_${side}_transmission">
+          <type>transmission_interface/SimpleTransmission</type>
+          <joint name="${prefix}_finger_${side}_joint">
+            <hardwareInterface>hardware_interface/${interface}JointInterface</hardwareInterface>
+          </joint>
+          <actuator name="${prefix}_finger_${side}_actuator"/>
+        </transmission>
+      </xacro:if>
+
+      <!-- Mimic joint -->
+      <xacro:if value="${side=='right'}">
+        <gazebo>
+          <plugin filename="libroboticsgroup_upatras_gazebo_mimic_joint_plugin.so" name="${prefix}_mimic_joint">
+            <joint>${prefix}_finger_left_joint</joint>
+            <mimicJoint>${prefix}_finger_${side}_joint</mimicJoint>
+          </plugin>
+        </gazebo>
+      </xacro:if>
+    </xacro:macro>
+
+    <xacro:finger side="left"/>
+    <xacro:finger side="right"/>
+  </xacro:macro>
+</robot>

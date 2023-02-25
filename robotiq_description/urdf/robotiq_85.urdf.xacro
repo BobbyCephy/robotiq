@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 
-<robot name="robotiq_85_gripper" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find robotiq_description)/urdf/robotiq_85_gripper.urdf.xacro" />
+<robot name="robotiq_85" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find robotiq_description)/urdf/robotiq_85.xacro" />
   
   <gazebo>
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so"> 
@@ -13,10 +13,10 @@
   <joint name="world_fixed" type="fixed">
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <parent link="world"/>
-    <child link="gripper_root_link"/>
+    <child link="robotiq_85_root_link"/>
   </joint>
 
-  <link name="gripper_root_link">
+  <link name="robotiq_85_root_link">
     <visual>
       <origin xyz="0 0 0.5" rpy="0 0 0"/>
       <geometry>
@@ -38,8 +38,8 @@
     </inertial>
   </link>
   
-  <xacro:robotiq_85_gripper prefix="" parent="gripper_root_link" >
-    <origin xyz="0.05 0 0.85" rpy="0 0 0"/>
-  </xacro:robotiq_85_gripper>
+  <xacro:robotiq_85 prefix="" parent="robotiq_85_root_link" >
+    <origin xyz="0.05 0 0.robotiq_85" rpy="0 0 0"/>
+  </xacro:robotiq_85>
   
 </robot>

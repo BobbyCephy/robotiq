@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
 <launch>
-
   <!-- Launch file parameters -->
   <arg name="paused"     default="false"/>
   <arg name="debug"      default="false"/>
   <arg name="gui"        default="true"/>
   <arg name="rate"       default="125" />
   <!-- <arg name="world_name" default="$(find ur3_gazebo)/worlds/bunri.world" /> -->
-
   
   <!-- Start up simulated world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -20,13 +18,12 @@
 
   <!-- Send robot urdf to param server -->
   <param name="robot_description" 
-         command="$(find xacro)/xacro --inorder '$(find robotiq_description)/urdf/robotiq_hande_gripper.xacro'" />
+         command="$(find xacro)/xacro --inorder '$(find robotiq_description)/urdf/robotiq_hande.urdf.xacro'" />
   <!-- Spawn robot in gazebo (and move it upwards):
        better initial values should be -2.355 and 1.57 but the robot does
        something strange when unpausing it
   -->
   <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
-        args="-urdf -param robot_description -model hande"
+        args="-urdf -param robot_description -model robotiq_hande"
         output="screen" />
-
 </launch>

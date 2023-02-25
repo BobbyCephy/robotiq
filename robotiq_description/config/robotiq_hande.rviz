@@ -65,17 +65,17 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        hand_e_link:
+        robotiq_hande_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        hande_left_finger:
+        robotiq_hande_finger_left:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        hande_right_finger:
+        robotiq_hande_finger_right:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -95,11 +95,11 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        hand_e_link:
+        robotiq_hande_base_link:
           Value: true
-        hande_left_finger:
+        robotiq_hande_finger_left:
           Value: true
-        hande_right_finger:
+        robotiq_hande_finger_right:
           Value: true
         world:
           Value: true
@@ -110,10 +110,10 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          hand_e_link:
-            hande_left_finger:
+          robotiq_hande_base_link:
+            robotiq_hande_finger_left:
               {}
-            hande_right_finger:
+            robotiq_hande_finger_right:
               {}
       Update Interval: 0
       Value: true
